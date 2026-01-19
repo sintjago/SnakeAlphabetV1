@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ثعبان الحروف</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Amiri&display=swap');
+    body {
+      font-family: 'Amiri', serif;
+      background-color: #CCCCCC;
+      color: #111;
+      text-align: center;
+      padding: 20px;
+      direction: rtl;
+    }
+    .title-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0;
+    }
+    #gameWrapper {
+      position: relative;
+      display: inline-block;
+    }
+    canvas {
+      background-color: #1e1e1e;
+      border: 4px solid white;
+      display: block;
+    }
+    #scoreOnCanvas {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      color: white;
+      font-size: 16px;
+    }
+    .controls {
+      margin: 10px auto;
+    }
+    #lettersEaten span, #wordsCompleted span {
+      cursor: pointer;
+      padding: 2px 4px;
+      display: inline-block;
+      font-weight: bold;
+    }
+    #lettersEaten span:hover, #wordsCompleted span:hover {
+      background-color: #ddd;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .button-group button {
+      font-size: 14px;
+      padding: 4px 8px;
+    }
+    .accordion, .panel {
+      display: block;
+      width: 400px;
+      margin: 10px auto;
+      box-sizing: border-box;
+      text-align: right;
+    }
+    .accordion {
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      padding: 10px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+    }
+    .accordion:after {
+      content: '▼';
+      float: left;
+    }
+    .accordion.active:after {
+      content: "▲";
+    }
+    .panel {
+      padding: 10px 20px;
+      display: none;
+      background-color: #eee;
+      overflow: hidden;
+    }
+    .panel div {
+      margin-bottom: 10px;
+    }
+    .panel input[type="text"] {
+      width: 250px;
+      box-sizing: border-box;
+      direction: rtl;
+    }
+    .panel .color-options button {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid #ccc;
+      margin: 2px;
+      cursor: pointer;
+    }
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      color: black;
+      padding: 20px;
+      border: 2px solid #444;
+      z-index: 10;
+      display: none;
+      font-size: 18px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #000;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="title-bar">
+    <h1>ثعبان الحروف</h1>
+    <div class="button-group">
+      <button onclick="ابدأ()">ابدأ</button>
+      <button onclick="تبديلالإيقاف()">⏸</button>
+      <button onclick="إعادة()">إعادة</button>
+    </div>
+  </div>
+
+  <div id="gameWrapper">
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="scoreOnCanvas">عدد الحروف: 0</div>
+  </div>
+
+  <div class="controls">
+    <div>
+      الحروف المأكولة: <span id="lettersEaten"><span onclick="نطق('ا')">ا</span></span>
+    </div>
+    <div id="targetWord" style="display:none; margin-top:6px;">
+      الكلمة المستهدفة: <span id="targetWordText"></span>
+    </div>
+    <div id="wordsCompleted" style="display:none; margin-top:6px;">
+      الكلمات المكتملة: <span id="wordsCompletedList"></span>
+    </div>
+  </div>
+
+  <button class="accordion">طريقة اللعب</button>
+  <div class="panel">
+    <p>
+      حرك الثعبان لالتهام الحروف بالترتيب.<br>
+      تجنب الاصطدام بالحائط أو بنفسك.<br>
+      أكمل الكلمات للحصول على النقاط.<br>
+      استخدم المسافة للإيقاف أو الاستئناف.<br>
+      انقر على الحرف أو الكلمة لسماعها.
+    </p>
+  </div>
+
+  <button class="accordion">الإعدادات</button>
+  <div class="panel">
+    <div>
+      <label for="speedRange">السرعة:</label>
+      <input type="range" min="1" max="10" value="5" id="speedRange" />
+    </div>
+    <div>
+      <label for="fontSelect">الخط:</label>
+      <select id="fontSelect" onchange="تغييرالخط(this.value)">
+        <option value="Arial">Arial</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Scramble" selected>Scramble</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Trebuchet MS">Trebuchet MS</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Impact">Impact</option>
+        <option value="Comic Sans MS">Comic Sans MS</option>
+        <option value="Lucida Console">Lucida Console</option>
+      </select>
+    </div>
+    <div>
+      <label><input type="checkbox" id="circleToggle" checked onchange="تفعيلدائرة(this.checked)"> إظهار دائرة حول الحرف</label>
+    </div>
+    <div>
+      <label><input type="checkbox" id="bodyLettersToggle" checked onchange="عرضالجسم(this.checked)"> عرض الحروف في جسم الثعبان</label>
+    </div>
+    <div>
+      <label><input type="checkbox" id="wordModeToggle" checked onchange="وضعكلمات(this.checked)"> وضع الكلمات</label><br>
+      <div style="display:flex; gap:6px; align-items:center; margin-top:6px;">
+        <input type="text" id="wordListInput" value="قطة,كلب,أسد,فيل,بقرة,نمر,خروف,ذئب,بط,ثعلب,جمل,سمكة,سلحفاة,نحلة" />
+        <button onclick="إرسالكلمات()">إرسال</button>
+      </div>
+    </div>
+    <div>
+      <label><input type="checkbox" id="noWallToggle" checked onchange="بلاحائط(this.checked)"> بدون حائط</label>
+    </div>
+    <div class="color-options">
+      <label>الألوان:</label><br>
+      <button style="background-color:#001f3f" onclick="تغييرالثيم('dark')"></button>
+      <button style="background-color:#FFDC00" onclick="تغييرالثيم('yellow')"></button>
+      <button style="background-color:#CCCCCC" onclick="تغييرالثيم('gray')"></button>
+      <button style="background-color:#2ECC40" onclick="تغييرالثيم('green')"></button>
+      <button style="background-color:#FF4136" onclick="تغييرالثيم('red')"></button>
+      <button style="background-color:#FF851B" onclick="تغييرالثيم('orange')"></button>
+    </div>
+  </div>
+
+  <div class="popup" id="gameOverPopup"></div>
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const speedRange = document.getElementById("speedRange");
+const fontSelect = document.getElementById("fontSelect");
+const circleToggle = document.getElementById("circleToggle");
+const bodyLettersToggle = document.getElementById("bodyLettersToggle");
+const wordModeToggle = document.getElementById("wordModeToggle");
+const wordListInput = document.getElementById("wordListInput");
+const noWallToggle = document.getElementById("noWallToggle");
+const lettersEatenDisplay = document.getElementById("lettersEaten");
+const targetWordDiv = document.getElementById("targetWord");
+const targetWordText = document.getElementById("targetWordText");
+const wordsCompletedDiv = document.getElementById("wordsCompleted");
+const wordsCompletedList = document.getElementById("wordsCompletedList");
+const scoreCanvas = document.getElementById("scoreOnCanvas");
+const popup = document.getElementById("gameOverPopup");
+
+let snake = [{ x: 10, y: 10 }];
+let direction = "right";
+let food = { x: 10, y: 10, letter: "ا" };
+let lettersEaten = ["ا"];
+let font = "Scramble";
+let interval;
+let paused = false;
+let showCircle = true;
+let showLettersOnBody = true;
+let wordMode = true;
+let noWall = true;
+let wordList = [];
+let wordIndex = 0;
+let letterIndex = 0;
+let completedWords = [];
+const synth = window.speechSynthesis;
+
+const arabicLetters = [
+  "ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش",
+  "ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"
+];
+
+document.addEventListener("keydown", e => {
+  const keys = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
+  if (keys[e.key]) direction = keys[e.key];
+  if (e.code === "Space" && !e.repeat) تبديلالإيقاف();
+});
+
+function تفعيلدائرة(v) { showCircle = v; رسم(); }
+function عرضالجسم(v) { showLettersOnBody = v; رسم(); }
+function بلاحائط(v) { noWall = v; }
+function تغييرالخط(f) { font = f; رسم(); }
+function تغييرالثيم(c) {
+  const colors = {
+    dark: ["#1e1e1e", "white"], yellow: ["#FFFACD", "#333"],
+    gray: ["#CCCCCC", "#111"], green: ["#d0f0c0", "#003300"],
+    red: ["#ffdddd", "#660000"], orange: ["#FFE5B4", "#331A00"]
+  }[c];
+  document.body.style.backgroundColor = colors[0];
+  document.body.style.color = colors[1];
+}
+function نطق(text) {
+  if (!synth) return;
+  synth.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "ar-SA";
+  synth.speak(utter);
+}
+function تبديلالإيقاف() { paused ? ابدأ() : إيقاف(); }
+function ابدأ() {
+  clearInterval(interval);
+  interval = setInterval(تحديث, 200 - +speedRange.value * 15);
+  paused = false;
+}
+function إيقاف() {
+  clearInterval(interval);
+  paused = true;
+}
+function إعادة() {
+  snake = [{ x: 10, y: 10 }];
+  direction = "right";
+  popup.style.display = "none";
+  completedWords = [];
+  wordsCompletedList.innerHTML = "";
+  if (wordMode && wordList.length) {
+    wordIndex = 0;
+    letterIndex = 0;
+    food.letter = wordList[0][0];
+    targetWordText.textContent = wordList[0];
+    lettersEaten = ["ا"];
+  } else {
+    food.letter = "ا";
+    lettersEaten = ["ا"];
+  }
+  وضعطعام();
+  تحديثعرض();
+  رسم();
+}
+function تحديثعرض() {
+  lettersEatenDisplay.innerHTML = lettersEaten.map(l =>
+    `<span onclick="نطق('${l}')">${l}</span>`).join('');
+  scoreCanvas.textContent = "عدد الحروف: " + (lettersEaten.length - 1);
+}
+function رسم() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = "16px " + font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  snake.forEach((s, i) => {
+    const text = showLettersOnBody ? (lettersEaten[i] || "ا") : "ا";
+    const cx = s.x * 20 + 10;
+    const cy = s.y * 20 + 10;
+
+    if (showCircle) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 14, 0, 2 * Math.PI);
+      ctx.fillStyle = "#f8f8f8";
+      ctx.fill();
+      ctx.fillStyle = "black";
+    } else {
+      ctx.fillStyle = "yellow";
+    }
+
+    ctx.fillText(text, cx, cy);
+  });
+
+  const fx = food.x * 20 + 10;
+  const fy = food.y * 20 + 10;
+
+  if (showCircle) {
+    ctx.beginPath();
+    ctx.arc(fx, fy, 14, 0, 2 * Math.PI);
+    ctx.fillStyle = "#f8f8f8";
+    ctx.fill();
+    ctx.fillStyle = "black";
+  } else {
+    ctx.fillStyle = "red";
+  }
+
+  ctx.fillText(food.letter, fx, fy);
+}
+function وضعطعام() {
+  let x, y;
+  do {
+    x = Math.floor(Math.random() * 18) + 1;
+    y = Math.floor(Math.random() * 18) + 1;
+  } while (snake.some(s => s.x === x && s.y === y));
+  food.x = x;
+  food.y = y;
+}
+function نهايةاللعبة() {
+  popup.innerText = `انتهت اللعبة! لقد أكلت ${lettersEaten.length - 1} حرفًا.`;
+  popup.style.display = "block";
+}
+function اصطدامالذات(head) {
+  return snake.some((s, i) => i > 0 && s.x === head.x && s.y === head.y);
+}
+function تحديث() {
+  let head = { ...snake[0] };
+  if (direction === "up") head.y--;
+  if (direction === "down") head.y++;
+  if (direction === "left") head.x--;
+  if (direction === "right") head.x++;
+
+  if (noWall) {
+    head.x = (head.x + 20) % 20;
+    head.y = (head.y + 20) % 20;
+  } else {
+    if (head.x < 0 || head.y < 0 || head.x > 19 || head.y > 19) {
+      إيقاف(); نهايةاللعبة(); return;
+    }
+  }
+
+  if (اصطدامالذات(head)) {
+    إيقاف(); نهايةاللعبة(); return;
+  }
+
+  if (head.x === food.x && head.y === food.y) {
+    const letter = food.letter;
+    نطق(letter);
+    snake.unshift(head);
+    lettersEaten.push(letter);
+
+    if (wordMode && wordList.length) {
+      letterIndex++;
+      if (letterIndex >= wordList[wordIndex].length) {
+        const word = wordList[wordIndex];
+        completedWords.push(word);
+        wordsCompletedList.innerHTML = completedWords.map(w =>
+          `<span onclick="نطق('${w}')">${w}</span>`).join(' ');
+        نطق(word);
+        wordIndex = (wordIndex + 1) % wordList.length;
+        letterIndex = 0;
+      }
+      food.letter = wordList[wordIndex][letterIndex];
+      targetWordText.textContent = wordList[wordIndex];
+      وضعطعام();
+    } else {
+      food.letter = arabicLetters[Math.floor(Math.random() * arabicLetters.length)];
+      وضعطعام();
+    }
+  } else {
+    snake.pop();
+    snake.unshift(head);
+  }
+
+  تحديثعرض();
+  رسم();
+}
+function إرسالكلمات() {
+  const text = wordListInput.value.trim();
+  wordList = text.split(",").map(w => w.trim()).filter(w => w.length > 0);
+  if (!wordList.length) return;
+  wordIndex = 0;
+  letterIndex = 0;
+  completedWords = [];
+  wordMode = true;
+  wordModeToggle.checked = true;
+  wordsCompletedDiv.style.display = "block";
+  targetWordDiv.style.display = "block";
+  targetWordText.textContent = wordList[0];
+  lettersEaten = ["ا"];
+  snake = [{ x: 10, y: 10 }];
+  food.letter = wordList[0][0];
+  وضعطعام();
+  تحديثعرض();
+  رسم();
+}
+function وضعكلمات(v) {
+  wordMode = v;
+  if (!v) {
+    wordsCompletedDiv.style.display = "none";
+    targetWordDiv.style.display = "none";
+  }
+}
+
+document.querySelectorAll('.accordion').forEach(acc => {
+  acc.addEventListener('click', function () {
+    this.classList.toggle('active');
+    const panel = this.nextElementSibling;
+    panel.style.display = panel.style.display === "block" ? "none" : "block";
+  });
+});
+
+window.onload = () => {
+  إرسالكلمات();
+  تفعيلدائرة(true);
+  عرضالجسم(true);
+  بلاحائط(true);
+  وضعكلمات(true);
+  وضعطعام();
+  تحديثعرض();
+  رسم();
+};
+</script>
+</body>
+</html>

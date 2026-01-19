@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Snake Game</title>
+    <style>
+        :root {
+            --bg-color: #282c34;
+            --border-color: #3b3f4a;
+            --text-color: white;
+            --snake-color: black;
+            --food-highlight: red;
+            --snake-highlight: yellow;
+            --button-border: #cccccc;
+            --dropdown-bg: #444444;
+            --dropdown-text: white;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            background-color: var(--bg-color);
+            display: block;
+            border: 6px solid var(--border-color);
+            border-radius: 10px;
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+
+        #score-board {
+            margin-top: 10px;
+            color: var(--text-color);
+            text-align: center;
+        }
+
+        #controls, #game-controls, #direction-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .color-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid var(--button-border);
+            cursor: pointer;
+        }
+
+        #language-select, #font-select {
+            background-color: var(--dropdown-bg);
+            color: var(--dropdown-text);
+            border: 2px solid var(--button-border);
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        #speed-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #letters-eaten span {
+            cursor: pointer;
+            margin-right: 5px;
+            text-decoration: underline;
+        }
+
+        #speed-label {
+            margin-right: 10px;
+        }
+
+        #font-container {
+            margin-top: 10px;
+        }
+
+        .arrow-button {
+            background-color: var(--dropdown-bg);
+            color: var(--dropdown-text);
+            border: 2px solid var(--button-border);
+            padding: 20px;
+            font-size: 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #start-button, #pause-button, #reset-button {
+            background-color: var(--dropdown-bg);
+            color: var(--dropdown-text);
+            border: 2px solid var(--button-border);
+            padding: 10px;
+            font-size: 14px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #direction-pad {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Letter Snake</h1>
+
+    <div id="controls">
+        <button class="color-button" style="background-color: #00274C;" onclick="setColorScheme('umich-blue-maize')"></button>
+        <button class="color-button" style="background-color: #FFCB05;" onclick="setColorScheme('umich-maize-blue')"></button>
+        <button class="color-button" style="background-color: #808080;" onclick="setColorScheme('grey')"></button>
+        <button class="color-button" style="background-color: #4CAF50;" onclick="setColorScheme('green')"></button>
+        <button class="color-button" style="background-color: #FF5722;" onclick="setColorScheme('orange')"></button>
+        <button class="color-button" style="background-color: #1E88E5;" onclick="setColorScheme('blue')"></button>
+        <button class="color-button" style="background-color: #FFC107;" onclick="setColorScheme('yellow')"></button>
+        <select id="language-select">
+            <option value="en-US" data-alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ">English</option>
+            <option value="es-ES" data-alphabet="ABCDEFGHIJKLMNÑOPQRSTUVWXYZ">Spanish</option>
+            <option value="fr-FR" data-alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZÀÂÆÇÉÈÊËÎÏÔŒÙÛÜŸ">French</option>
+            <option value="de-DE" data-alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜß">German</option>
+            <option value="ru-RU" data-alphabet="АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ">Russian</option>
+            <option value="ko-KR" data-alphabet="가나다라마바사아자차카타파하">Korean</option>
+            <option value="zh-CN" data-alphabet="阿爸擦搭而发个哈叫咖啦妈那哦怕洒他娃夏呀炸">Mandarin</option>
+            <option value="zh-HK" data-alphabet="亞爸差打而發個哈加喀啦媽那怕薩他瓦蝦呀咋">Cantonese</option>
+            <option value="ar-SA" data-alphabet="ابتثجحخدذرزسشصضطظعغفقكلمنهوي">Arabic</option>
+            <option value="el-GR" data-alphabet="ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ">Greek</option>
+            <option value="it-IT" data-alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZÀÈÉÌÒÙ">Italian</option>
+            <option value="ja-JP" data-alphabet="アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン">Japanese</option>
+            <option value="pt-PT" data-alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZÁÀÂÃÉÊÍÓÔÕÚÜÇ">Portuguese</option>
+            <option value="nl-NL" data-alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ">Dutch</option>
+        </select>
+    </div>
+
+    <div id="speed-container">
+        <label id="speed-label" for="speed-slider">Speed:</label>
+        <input type="range" id="speed-slider" min="1" max="5" value="3" step="1">
+    </div>
+
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <div id="direction-buttons">
+        <button class="arrow-button" onclick="setDirection('left')">⬅️</button>
+        <button class="arrow-button" onclick="setDirection('up')">⬆️</button>
+        <button class="arrow-button" onclick="setDirection('down')">⬇️</button>
+        <button class="arrow-button" onclick="setDirection('right')">➡️</button>
+    </div>
+
+    <div id="game-controls">
+        <button id="start-button" onclick="startGame()">Start</button>
+        <button id="pause-button" onclick="togglePause()">⏸️</button>
+        <button id="reset-button" onclick="resetGame()">Reset</button>
+    </div>
+
+    <div id="score-board">
+        <div>Score: <span id="score">0</span></div>
+        <div>Letters Eaten: <span id="letters-eaten">S</span></div>
+    </div>
+
+    <div id="font-container">
+        <label for="font-select">Choose Font:</label>
+        <select id="font-select">
+            <option value="scramble" selected>Scramble</option>
+            <option value="Arial" style="font-family: Arial;">Arial</option>
+            <option value="Courier New" style="font-family: 'Courier New';">Courier New</option>
+            <option value="Georgia" style="font-family: Georgia;">Georgia</option>
+            <option value="Times New Roman" style="font-family: 'Times New Roman';">Times New Roman</option>
+            <option value="Verdana" style="font-family: Verdana;">Verdana</option>
+            <option value="Comic Sans MS" style="font-family: 'Comic Sans MS';">Comic Sans MS</option>
+            <option value="Trebuchet MS" style="font-family: 'Trebuchet MS';">Trebuchet MS</option>
+            <option value="Lucida Console" style="font-family: 'Lucida Console';">Lucida Console</option>
+            option value="Impact" style="font-family: Impact;">Impact</option>
+            <option value="Roboto" style="font-family: Roboto;">Roboto</option>
+            <option value="Lobster" style="font-family: Lobster;">Lobster</option>
+            <option value="Open Sans" style="font-family: 'Open Sans';">Open Sans</option>
+            <option value="Helvetica" style="font-family: Helvetica;">Helvetica</option>
+            <option value="Arial Black" style="font-family: 'Arial Black';">Arial Black</option>
+            <option value="Gill Sans" style="font-family: 'Gill Sans';">Gill Sans</option>
+            <option value="Baskerville" style="font-family: Baskerville;">Baskerville</option>
+            <option value="Futura" style="font-family: Futura;">Futura</option>
+            <option value="Didot" style="font-family: Didot;">Didot</option>
+            <option value="Rockwell" style="font-family: Rockwell;">Rockwell</option>
+        </select>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 20;
+        const canvasSize = 400;
+        const languageSelect = document.getElementById('language-select');
+        const fontSelect = document.getElementById('font-select');
+        const speedSlider = document.getElementById('speed-slider');
+        const lettersEatenContainer = document.getElementById('letters-eaten');
+
+        const fonts = ['Arial', 'Courier New', 'Georgia', 'Times New Roman', 'Verdana', 'Comic Sans MS', 'Trebuchet MS', 'Lucida Console', 'Impact', 'Roboto', 'Lobster', 'Open Sans', 'Helvetica', 'Arial Black', 'Gill Sans', 'Baskerville', 'Futura', 'Didot', 'Rockwell'];
+        let selectedAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let selectedLanguage = 'en-US';
+        let selectedFont = 'scramble';
+        let gameSpeed = 300;
+        let snake = [{ x: 200, y: 200, letter: 'S' }];
+        let direction = { x: 0, y: 0 };
+        let letter = getRandomLetter();
+        let letterPosition = getRandomPosition();
+        let score = 0;
+        let lettersEaten = ['S'];
+        let isPaused = false;
+        let isLanguageLocked = false;
+        let gameStarted = false;
+
+        function setColorScheme(scheme) {
+            switch (scheme) {
+                case 'umich-blue-maize':
+                    document.documentElement.style.setProperty('--bg-color', '#00274C');
+                    document.documentElement.style.setProperty('--border-color', '#FFCB05');
+                    document.documentElement.style.setProperty('--text-color', 'white');
+                    document.documentElement.style.setProperty('--snake-color', '#FFCB05');
+                    document.documentElement.style.setProperty('--food-highlight', '#00274C');
+                    document.documentElement.style.setProperty('--snake-highlight', 'white');
+                    break;
+                case 'umich-maize-blue':
+                    document.documentElement.style.setProperty('--bg-color', '#FFCB05');
+                    document.documentElement.style.setProperty('--border-color', '#00274C');
+                    document.documentElement.style.setProperty('--text-color', 'black');
+                    document.documentElement.style.setProperty('--snake-color', '#00274C');
+                    document.documentElement.style.setProperty('--food-highlight', '#FFCB05');
+                    document.documentElement.style.setProperty('--snake-highlight', 'black');
+                    break;
+                case 'grey':
+                    document.documentElement.style.setProperty('--bg-color', '#808080');
+                    document.documentElement.style.setProperty('--border-color', '#666666');
+                    document.documentElement.style.setProperty('--text-color', 'white');
+                    document.documentElement.style.setProperty('--snake-color', 'black');
+                    document.documentElement.style.setProperty('--food-highlight', 'red');
+                    document.documentElement.style.setProperty('--snake-highlight', 'yellow');
+                    break;
+                case 'green':
+                    document.documentElement.style.setProperty('--bg-color', '#4CAF50');
+                    document.documentElement.style.setProperty('--border-color', '#38733c');
+                    document.documentElement.style.setProperty('--text-color', 'white');
+                    document.documentElement.style.setProperty('--snake-color', 'black');
+                    document.documentElement.style.setProperty('--food-highlight', 'red');
+                    document.documentElement.style.setProperty('--snake-highlight', 'yellow');
+                    break;
+                case 'orange':
+                    document.documentElement.style.setProperty('--bg-color', '#FF5722');
+                    document.documentElement.style.setProperty('--border-color', '#E64A19');
+                    document.documentElement.style.setProperty('--text-color', 'white');
+                    document.documentElement.style.setProperty('--snake-color', 'black');
+                    document.documentElement.style.setProperty('--food-highlight', 'red');
+                    document.documentElement.style.setProperty('--snake-highlight', 'yellow');
+                    break;
+                case 'blue':
+                    document.documentElement.style.setProperty('--bg-color', '#1E88E5');
+                    document.documentElement.style.setProperty('--border-color', '#1565C0');
+                    document.documentElement.style.setProperty('--text-color', 'white');
+                    document.documentElement.style.setProperty('--snake-color', 'black');
+                    document.documentElement.style.setProperty('--food-highlight', 'orange');
+                    document.documentElement.style.setProperty('--snake-highlight', 'yellow');
+                    break;
+                case 'yellow':
+                    document.documentElement.style.setProperty('--bg-color', '#FFC107');
+                    document.documentElement.style.setProperty('--border-color', '#FFA000');
+                    document.documentElement.style.setProperty('--text-color', 'black');
+                    document.documentElement.style.setProperty('--snake-color', 'black');
+                    document.documentElement.style.setProperty('--food-highlight', 'red');
+                    document.documentElement.style.setProperty('--snake-highlight', 'green');
+                    break;
+            }
+        }
+
+        fontSelect.addEventListener('change', function() {
+            selectedFont = fontSelect.value;
+        });
+
+        function getRandomLetter() {
+            return selectedAlphabet[Math.floor(Math.random() * selectedAlphabet.length)];
+        }
+
+        function getRandomPosition() {
+            const padding = gridSize;
+            const randomX = Math.floor(Math.random() * ((canvas.width - 2 * padding) / gridSize)) * gridSize + padding;
+            const randomY = Math.floor(Math.random() * ((canvas.height - 2 * padding) / gridSize)) * gridSize + padding;
+            return { x: randomX, y: randomY };
+        }
+
+        function drawSnake() {
+            for (let i = 0; i < snake.length; i++) {
+                let font = selectedFont;
+                if (selectedFont === 'scramble') {
+                    font = fonts[i % fonts.length];
+                }
+                ctx.font = `20px ${font}`;
+                ctx.shadowColor = "yellow";
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = "black";
+                ctx.fillText(snake[i].letter, snake[i].x + 4, snake[i].y + 16);
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        function drawLetter() {
+            ctx.font = `20px ${selectedFont}`;
+            ctx.shadowColor = "red";
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = "black";
+            ctx.fillText(letter, letterPosition.x + 4, letterPosition.y + 16);
+            ctx.shadowBlur = 0;
+        }
+
+        function speakLetter(letter) {
+            const utterance = new SpeechSynthesisUtterance(letter);
+            utterance.lang = selectedLanguage;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function updateLettersEaten() {
+            lettersEatenContainer.innerHTML = '';
+            lettersEaten.forEach(l => {
+                const letterSpan = document.createElement('span');
+                letterSpan.textContent = l;
+                letterSpan.addEventListener('click', () => speakLetter(l));
+                lettersEatenContainer.appendChild(letterSpan);
+            });
+        }
+
+        function moveSnake() {
+            const newHead = { x: snake[0].x + direction.x * gridSize, y: snake[0].y + direction.y * gridSize, letter: snake[0].letter };
+
+            if (newHead.x === letterPosition.x && newHead.y === letterPosition.y) {
+                newHead.letter = letter;
+                lettersEaten.push(letter);
+                speakLetter(letter);
+                letter = getRandomLetter();
+                letterPosition = getRandomPosition();
+                score++;
+                document.getElementById("score").textContent = `Score: ${score}`;
+                updateLettersEaten();
+            } else {
+                snake.pop();
+            }
+
+            snake.unshift(newHead);
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+
+            if (head.x < 0 || head.x >= canvasSize || head.y < 0 || head.y >= canvasSize) {
+                return true;
+            }
+
+            for (let i = 1; i < snake.length; i++) {
+                if (snake[i].x === head.x && snake[i].y === head.y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function resetGame() {
+            snake = [{ x: 200, y: 200, letter: 'S' }];
+            direction = { x: 0, y: 0 };
+            letter = getRandomLetter();
+            letterPosition = getRandomPosition();
+            score = 0;
+            lettersEaten = ['S'];
+            document.getElementById("score").textContent = `Score: 0`;
+            updateLettersEaten();
+            isPaused = false;
+            isLanguageLocked = false;
+            gameStarted = false;
+            languageSelect.disabled = false;
+        }
+
+        function lockLanguage() {
+            if (!isLanguageLocked) {
+                selectedLanguage = languageSelect.value;
+                selectedAlphabet = languageSelect.options[languageSelect.selectedIndex].dataset.alphabet;
+                languageSelect.disabled = true;
+                isLanguageLocked = true;
+            }
+        }
+
+        function startGame() {
+            if (!gameStarted) {
+                lockLanguage();
+                gameStarted = true;
+                isPaused = false;
+            }
+        }
+
+        function togglePause() {
+            if (gameStarted) {
+                isPaused = !isPaused;
+            }
+        }
+
+        function setDirection(newDirection) {
+            if (!gameStarted) {
+                startGame();
+            }
+            switch (newDirection) {
+                case 'up':
+                    if (direction.y === 0) direction = { x: 0, y: -1 };
+                    break;
+                case 'down':
+                    if (direction.y === 0) direction = { x: 0, y: 1 };
+                    break;
+                case 'left':
+                    if (direction.x === 0) direction = { x: -1, y: 0 };
+                    break;
+                case 'right':
+                    if (direction.x === 0) direction = { x: 1, y: 0 };
+                    break;
+            }
+        }
+
+        function gameLoop() {
+            if (!isPaused && gameStarted) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawSnake();
+                drawLetter();
+                moveSnake();
+
+                if (checkCollision()) {
+                    alert("Game Over! Your score was " + score);
+                    resetGame();
+                }
+            }
+        }
+
+        document.addEventListener('keydown', event => {
+            if (!gameStarted) {
+                startGame();
+            }
+            if (!isPaused) {
+                switch (event.key) {
+                    case 'ArrowUp':
+                        setDirection('up');
+                        break;
+                    case 'ArrowDown':
+                        setDirection('down');
+                        break;
+                    case 'ArrowLeft':
+                        setDirection('left');
+                        break;
+                    case 'ArrowRight':
+                        setDirection('right');
+                        break;
+                }
+            }
+        });
+
+        speedSlider.addEventListener('input', function () {
+            const speedValue = parseInt(speedSlider.value);
+            switch (speedValue) {
+                case 1:
+                    gameSpeed = 450;
+                    break;
+                case 2:
+                    gameSpeed = 375;
+                    break;
+                case 3:
+                    gameSpeed = 300;
+                    break;
+                case 4:
+                    gameSpeed = 225;
+                    break;
+                case 5:
+                    gameSpeed = 150;
+                    break;
+            }
+            clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, gameSpeed);
+        });
+
+        // Start the game loop with the initial speed
+        let gameInterval = setInterval(gameLoop, gameSpeed);
+    </script>
+</body>
+</html>

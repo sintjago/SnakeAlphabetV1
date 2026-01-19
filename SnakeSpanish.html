@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Serpiente de Letras</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap');
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #CCCCCC;
+      color: #111;
+      text-align: center;
+      padding: 20px;
+    }
+    .title-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-family: 'Playfair+Display', serif;
+      font-size: 20px;
+      margin: 0;
+    }
+    #gameWrapper {
+      position: relative;
+      display: inline-block;
+    }
+    canvas {
+      background-color: #1e1e1e;
+      border: 4px solid white;
+      display: block;
+    }
+    #scoreOnCanvas {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 16px;
+    }
+    .controls {
+      margin: 10px auto;
+    }
+    #lettersEaten span, #wordsCompleted span {
+      cursor: pointer;
+      padding: 2px 4px;
+      display: inline-block;
+      font-weight: bold;
+    }
+    #lettersEaten span:hover, #wordsCompleted span:hover {
+      background-color: #ddd;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .button-group button {
+      font-size: 14px;
+      padding: 4px 8px;
+    }
+    .accordion, .panel {
+      display: block;
+      width: 400px;
+      margin: 10px auto;
+      box-sizing: border-box;
+    }
+    .accordion {
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      padding: 10px;
+      border: none;
+      text-align: left;
+      outline: none;
+      font-size: 16px;
+    }
+    .accordion:after {
+      content: '▼';
+      float: right;
+    }
+    .accordion.active:after {
+      content: "▲";
+    }
+    .panel {
+      padding: 10px 20px;
+      display: none;
+      background-color: #eee;
+      overflow: hidden;
+    }
+    .panel div {
+      margin-bottom: 10px;
+    }
+    .panel input[type="text"] {
+      width: 250px;
+      box-sizing: border-box;
+    }
+    .panel .color-options button {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid #ccc;
+      margin: 2px;
+      cursor: pointer;
+    }
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      color: black;
+      padding: 20px;
+      border: 2px solid #444;
+      z-index: 10;
+      display: none;
+      font-size: 18px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #000;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="title-bar">
+    <h1>Serpiente de Letras</h1>
+    <div class="button-group">
+      <button onclick="iniciarJuego()">Iniciar</button>
+      <button onclick="alternarPausa()">⏸</button>
+      <button onclick="reiniciarJuego()">Reiniciar</button>
+    </div>
+  </div>
+
+  <div id="gameWrapper">
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="scoreOnCanvas">Letras: 0</div>
+  </div>
+
+  <div class="controls">
+    <div>
+      Letras Comidas: <span id="lettersEaten"><span onclick="speak('S')">S</span></span>
+    </div>
+    <div id="targetWord" style="display:none; margin-top:6px;">
+      Palabra Objetivo: <span id="targetWordText"></span>
+    </div>
+    <div id="wordsCompleted" style="display:none; margin-top:6px;">
+      Palabras Completadas: <span id="wordsCompletedList"></span>
+    </div>
+  </div>
+
+  <button class="accordion">Cómo Jugar</button>
+  <div class="panel">
+    <p>
+      Guía la serpiente para comer letras en orden.<br>
+      Evita las paredes y tu propia cola.<br>
+      Completa palabras para ganar puntos.<br>
+      Usa la barra espaciadora para pausar/reanudar.<br>
+      Haz clic en letras o palabras para escucharlas.
+    </p>
+  </div>
+
+  <button class="accordion">Opciones</button>
+  <div class="panel">
+    <div>
+      <label for="speedRange">Velocidad:</label>
+      <input type="range" min="1" max="10" value="5" id="speedRange" />
+    </div>
+    <div>
+      <label for="fontSelect">Fuente:</label>
+      <select id="fontSelect" onchange="changeFont(this.value)">
+        <option value="Arial">Arial</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Scramble" selected>Scramble</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Trebuchet MS">Trebuchet MS</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Impact">Impact</option>
+        <option value="Comic Sans MS">Comic Sans MS</option>
+        <option value="Lucida Console">Lucida Console</option>
+      </select>
+    </div>
+    <div>
+      <label><input type="checkbox" id="circleToggle" checked onchange="toggleCircle(this.checked)"> Círculo alrededor de letras</label>
+    </div>
+    <div>
+      <label><input type="checkbox" id="bodyLettersToggle" checked onchange="toggleBodyLetters(this.checked)"> Mostrar letras comidas en el cuerpo</label>
+    </div>
+    <div>
+      <label><input type="checkbox" id="wordModeToggle" checked onchange="toggleWordMode(this.checked)"> Modo Palabras</label><br>
+      <div style="display:flex; gap:6px; align-items:center; margin-top:6px;">
+        <input type="text" id="wordListInput" value="PERRO,GATO,LEON,OSO,RANA,CABALLO,RATON,CEBRA,TIGRE,BALLENA,TIBURON,VACA,CIERVO,CERDO,LOBO,CABRA,MURCIELAGO,ZORRO,KOALA,LLAMA" />
+        <button onclick="submitWords()">Enviar</button>
+      </div>
+    </div>
+    <div>
+      <label><input type="checkbox" id="noWallToggle" checked onchange="toggleNoWall(this.checked)"> Sin Paredes</label>
+    </div>
+    <div class="color-options">
+      <label>Temas:</label><br>
+      <button style="background-color:#001f3f" onclick="changeTheme('dark')"></button>
+      <button style="background-color:#FFDC00" onclick="changeTheme('yellow')"></button>
+      <button style="background-color:#CCCCCC" onclick="changeTheme('gray')"></button>
+      <button style="background-color:#2ECC40" onclick="changeTheme('green')"></button>
+      <button style="background-color:#FF4136" onclick="changeTheme('red')"></button>
+      <button style="background-color:#FF851B" onclick="changeTheme('orange')"></button>
+    </div>
+  </div>
+
+  <div class="popup" id="gameOverPopup"></div>
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const speedRange = document.getElementById("speedRange");
+const fontSelect = document.getElementById("fontSelect");
+const circleToggle = document.getElementById("circleToggle");
+const bodyLettersToggle = document.getElementById("bodyLettersToggle");
+const wordModeToggle = document.getElementById("wordModeToggle");
+const wordListInput = document.getElementById("wordListInput");
+const noWallToggle = document.getElementById("noWallToggle");
+const lettersEatenDisplay = document.getElementById("lettersEaten");
+const targetWordDiv = document.getElementById("targetWord");
+const targetWordText = document.getElementById("targetWordText");
+const wordsCompletedDiv = document.getElementById("wordsCompleted");
+const wordsCompletedList = document.getElementById("wordsCompletedList");
+const scoreCanvas = document.getElementById("scoreOnCanvas");
+const popup = document.getElementById("gameOverPopup");
+
+let serpiente = [{ x: 10, y: 10 }];
+let direccion = "right";
+let comida = { x: 10, y: 10, letra: "S" };
+let letrasComidas = ["S"];
+let fuente = "Scramble";
+let intervalo;
+let pausado = false;
+let mostrarCirculo = true;
+let mostrarLetrasEnCuerpo = true;
+let modoPalabra = true;
+let sinParedes = true;
+let listaPalabras = [];
+let indicePalabra = 0;
+let indiceLetra = 0;
+let palabrasCompletadas = [];
+const voz = window.speechSynthesis;
+const alfabetoTradicional = ["A","B","C","Ch","D","E","F","G","H","I","J","K","L","Ll","M","N","Ñ","O","P","Q","R","Rr","S","T","U","V","W","X","Y","Z"];
+
+document.addEventListener("keydown", e => {
+  const teclas = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
+  if (teclas[e.key]) direccion = teclas[e.key];
+  if (e.code === "Space" && !e.repeat) alternarPausa();
+});
+
+function toggleCircle(v) { mostrarCirculo = v; dibujar(); }
+function toggleBodyLetters(v) { mostrarLetrasEnCuerpo = v; dibujar(); }
+function toggleNoWall(v) { sinParedes = v; }
+function changeFont(f) { fuente = f; dibujar(); }
+function changeTheme(c) {
+  const temas = {
+    dark: ["#1e1e1e", "white"], yellow: ["#FFFACD", "#333"],
+    gray: ["#CCCCCC", "#111"], green: ["#d0f0c0", "#003300"],
+    red: ["#ffdddd", "#660000"], orange: ["#FFE5B4", "#331A00"]
+  }[c];
+  document.body.style.backgroundColor = temas[0];
+  document.body.style.color = temas[1];
+}
+function speak(texto) {
+  if (!voz) return;
+  voz.cancel();
+  const frase = new SpeechSynthesisUtterance(texto);
+  frase.lang = "es-ES";
+  voz.speak(frase);
+}
+function alternarPausa() { pausado ? iniciarJuego() : pausarJuego(); }
+function iniciarJuego() {
+  clearInterval(intervalo);
+  intervalo = setInterval(bucleJuego, 200 - +speedRange.value * 15);
+  pausado = false;
+}
+function pausarJuego() {
+  clearInterval(intervalo);
+  pausado = true;
+}
+function reiniciarJuego() {
+  serpiente = [{ x: 10, y: 10 }];
+  direccion = "right";
+  popup.style.display = "none";
+  palabrasCompletadas = [];
+  wordsCompletedList.innerHTML = "";
+  if (modoPalabra && listaPalabras.length) {
+    indicePalabra = 0;
+    indiceLetra = 0;
+    comida.letra = listaPalabras[0][0];
+    targetWordText.textContent = listaPalabras[0];
+    letrasComidas = ["S"];
+  } else {
+    comida.letra = "S";
+    letrasComidas = ["S"];
+  }
+  colocarComida();
+  actualizarVista();
+  dibujar();
+  clearInterval(intervalo);
+  pausado = false;
+}
+function actualizarVista() {
+  lettersEatenDisplay.innerHTML = letrasComidas.map(l =>
+    `<span onclick="speak('${l}')">${l}</span>`).join('');
+  scoreCanvas.textContent = "Letras: " + (letrasComidas.length - 1);
+}
+function dibujar() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = "16px " + fuente;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  serpiente.forEach((s, i) => {
+    const texto = mostrarLetrasEnCuerpo ? (letrasComidas[i] || "S") : "S";
+    const cx = s.x * 20 + 10;
+    const cy = s.y * 20 + 10;
+
+    if (mostrarCirculo) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 14, 0, 2 * Math.PI);
+      ctx.fillStyle = "#f8f8f8";
+      ctx.fill();
+      ctx.fillStyle = "black";
+    } else {
+      ctx.fillStyle = "yellow";
+    }
+
+    ctx.fillText(texto, cx, cy);
+  });
+
+  const foodX = comida.x * 20 + 10;
+  const foodY = comida.y * 20 + 10;
+
+  if (mostrarCirculo) {
+    ctx.beginPath();
+    ctx.arc(foodX, foodY, 14, 0, 2 * Math.PI);
+    ctx.fillStyle = "#f8f8f8";
+    ctx.fill();
+    ctx.fillStyle = "black";
+  } else {
+    ctx.fillStyle = "red";
+  }
+
+  ctx.fillText(comida.letra, foodX, foodY);
+}
+function colocarComida() {
+  let x, y;
+  do {
+    x = Math.floor(Math.random() * 18) + 1;
+    y = Math.floor(Math.random() * 18) + 1;
+  } while (serpiente.some(s => s.x === x && s.y === y));
+  comida.x = x;
+  comida.y = y;
+}
+function mostrarGameOver() {
+  popup.innerText = `Juego terminado. ¡Comiste ${letrasComidas.length - 1} letras!`;
+  popup.style.display = "block";
+}
+function colisionPropia(cabeza) {
+  return serpiente.some((s, i) => i > 0 && s.x === cabeza.x && s.y === cabeza.y);
+}
+function bucleJuego() {
+  let cabeza = { ...serpiente[0] };
+  if (direccion === "up") cabeza.y--;
+  if (direccion === "down") cabeza.y++;
+  if (direccion === "left") cabeza.x--;
+  if (direccion === "right") cabeza.x++;
+
+  if (sinParedes) {
+    cabeza.x = (cabeza.x + 20) % 20;
+    cabeza.y = (cabeza.y + 20) % 20;
+  } else {
+    if (cabeza.x < 0 || cabeza.y < 0 || cabeza.x > 19 || cabeza.y > 19) {
+      pausarJuego(); mostrarGameOver(); return;
+    }
+  }
+
+  if (colisionPropia(cabeza)) {
+    pausarJuego(); mostrarGameOver(); return;
+  }
+
+  if (cabeza.x === comida.x && cabeza.y === comida.y) {
+    const letra = comida.letra;
+    speak(letra);
+    serpiente.unshift(cabeza);
+    letrasComidas.push(letra);
+
+    if (modoPalabra && listaPalabras.length) {
+      indiceLetra++;
+      if (indiceLetra >= listaPalabras[indicePalabra].length) {
+        const completada = listaPalabras[indicePalabra];
+        palabrasCompletadas.push(completada);
+        wordsCompletedList.innerHTML = palabrasCompletadas.map(p =>
+          `<span onclick="speak('${p}')">${p}</span>`).join(' ');
+        speak(completada);
+        indicePalabra = (indicePalabra + 1) % listaPalabras.length;
+        indiceLetra = 0;
+      }
+      comida.letra = listaPalabras[indicePalabra][indiceLetra];
+      targetWordText.textContent = listaPalabras[indicePalabra];
+      colocarComida();
+    } else {
+      comida.letra = alfabetoTradicional[Math.floor(Math.random() * alfabetoTradicional.length)];
+      colocarComida();
+    }
+  } else {
+    serpiente.pop();
+    serpiente.unshift(cabeza);
+  }
+
+  actualizarVista();
+  dibujar();
+}
+function submitWords() {
+  const entrada = wordListInput.value.trim().toUpperCase();
+  listaPalabras = entrada.split(",").map(p => p.trim()).filter(p => /^[A-ZÑLlRrCh]+$/i.test(p));
+  if (!listaPalabras.length) return;
+  indicePalabra = 0;
+  indiceLetra = 0;
+  palabrasCompletadas = [];
+  modoPalabra = true;
+  wordModeToggle.checked = true;
+  wordsCompletedDiv.style.display = "block";
+  targetWordDiv.style.display = "block";
+  targetWordText.textContent = listaPalabras[0];
+  letrasComidas = ["S"];
+  serpiente = [{ x: 10, y: 10 }];
+  comida.letra = listaPalabras[0][0];
+  colocarComida();
+  actualizarVista();
+  dibujar();
+}
+function toggleWordMode(activo) {
+  modoPalabra = activo;
+  if (!activo) {
+    wordsCompletedDiv.style.display = "none";
+    targetWordDiv.style.display = "none";
+  }
+}
+
+document.querySelectorAll('.accordion').forEach(acc => {
+  acc.addEventListener('click', function () {
+    this.classList.toggle('active');
+    const panel = this.nextElementSibling;
+    panel.style.display = panel.style.display === "block" ? "none" : "block";
+  });
+});
+
+window.onload = () => {
+  submitWords();
+  toggleCircle(true);
+  toggleBodyLetters(true);
+  toggleNoWall(true);
+  toggleWordMode(true);
+  colocarComida();
+  actualizarVista();
+  dibujar();
+};
+</script>
+</body>
+</html>
